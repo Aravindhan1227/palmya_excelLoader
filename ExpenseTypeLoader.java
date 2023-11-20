@@ -54,10 +54,10 @@ public class ExpenseTypeLoader {
                                 preparedStatement.executeUpdate();
                             } catch (SQLException e) {
                                 e.printStackTrace();
-                                // Handle the exception according to your application's requirements
+                                
                             }
                         }
-                        // If the name is a duplicate, you can handle it as needed
+                        
                     
                 }
             } catch (SQLException e) {
