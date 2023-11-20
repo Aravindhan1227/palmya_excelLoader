@@ -79,10 +79,10 @@ public class SiteExpenseLoader {
         try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
             
 
-            // Execute the delete query
+           
             int rowsAffected = preparedStatement.executeUpdate();
 
-            // Check if the delete was successful (1 row affected means success)
+          
             return rowsAffected > 0;
         }
     }
