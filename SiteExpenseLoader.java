@@ -4,7 +4,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -35,15 +34,16 @@ public class SiteExpenseLoader {
 
             try (Connection connection = DriverManager.getConnection(jdbcUrl, username, password)) {
                 deleteRecord(connection, "site_expense");
-            	for (Row row : sheet) {
+                for (Row row : sheet) {
                     if (row.getRowNum() == 0) continue;
-                    
+
                     String expenseType = getStringCellValue(row, "Exp. Type");
                     String expenseSubTypeName = getStringCellValue(row, "Sub Type");
                     String siteName = getStringCellValue(row, "Site");
 
-                    int expenseTypeId = getExpenseTypeId(connection, expenseType);
-                    int expenseSubTypeId = getExpenseSubTypeId(connection, expenseSubTypeName);
+                    int[] ids = JoinQueryHandler.getExpenseSubTypeId(connection, expenseType, expenseSubTypeName);
+                    int expenseTypeId = ids[0];
+                    int expenseSubTypeId = ids[1];
                     int siteId = getSiteId(connection, siteName);
 
                     int date = findColumnIndex(sheet, "Date");
@@ -78,11 +78,7 @@ public class SiteExpenseLoader {
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
             
-
-           
             int rowsAffected = preparedStatement.executeUpdate();
-
-          
             return rowsAffected > 0;
         }
     }
@@ -111,50 +107,27 @@ public class SiteExpenseLoader {
 
         return -1;
     }
-    private static int getExpenseSubTypeId(Connection connection, String expenseSubTypeName) throws SQLException {
-        String selectQuery = "SELECT id FROM expense_sub_type WHERE name = ?";
-        try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
-            preparedStatement.setString(1, expenseSubTypeName.trim());
-            ResultSet resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                return resultSet.getInt("id");
-            }
-        }
-        return -1;
-    }
+  
+
+        
 
     private static int getSiteId(Connection connection, String siteName) throws SQLException {
         String selectQuery = "SELECT id FROM site_info WHERE site_name = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
             preparedStatement.setString(1, siteName.trim());
-            ResultSet resultSet = preparedStatement.executeQuery();
-           // try () {
+            
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
                     return resultSet.getInt("id");
                 }
-          //  }
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//        }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        
         return -1;
     }
-    
-    private static int getExpenseTypeId(Connection connection, String expenseTypeName) throws SQLException {
-        String selectQuery = "SELECT id FROM expense_type WHERE name = ?";
-        try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
-            preparedStatement.setString(1, expenseTypeName.trim());
-            ResultSet resultSet = preparedStatement.executeQuery();
-           // try () {
-                if (resultSet.next()) {
-                    return resultSet.getInt("id");
-                }
-          //  }
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//        }
-        }
-        return -1;
-    }
+
+
 
 }
