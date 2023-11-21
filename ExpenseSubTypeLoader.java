@@ -26,7 +26,7 @@ public class ExpenseSubTypeLoader {
     }
 
     public static void loadExpenseSubTypes(String excelFilePath) {
-        Set<String> processedNames = new HashSet<>();
+
 
         try (FileInputStream excelFile = new FileInputStream(excelFilePath);
              Workbook workbook = new XSSFWorkbook(excelFile);
@@ -42,15 +42,14 @@ public class ExpenseSubTypeLoader {
 
                 String expenseSubTypeName = row.getCell(expTypeColumnIndex).getStringCellValue();
 
-                if (!processedNames.contains(expenseSubTypeName)) {
-                    processedNames.add(expenseSubTypeName);
+
                     
                     
                     int expenseTypeColumnIndex = findExpenseTypeColumnIndex(sheet, "Exp. Type");
                     String expenseType =row.getCell(expenseTypeColumnIndex).getStringCellValue();
                     int expenseTypeId = getExpenseTypeId(connection, expenseType);
 
-                    if (!isDuplicateName(connection, expenseSubTypeName)) {
+                    if (!isDuplicateName(connection, expenseSubTypeName , expenseTypeId)) {
                     	String insertQuery = "INSERT INTO expense_sub_type (expense_type , name) VALUES (? , ?)";
                     	try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS)) {
                     		preparedStatement.setInt(1, expenseTypeId);
@@ -60,7 +59,6 @@ public class ExpenseSubTypeLoader {
                     		e.printStackTrace();
                     	}
                     }
-                }
             }
         } catch (IOException | SQLException e) {
             e.printStackTrace();
@@ -91,16 +89,14 @@ public class ExpenseSubTypeLoader {
     private static int getExpenseTypeId(Connection connection, String expenseTypeName) throws SQLException {
         String selectQuery = "SELECT id FROM expense_type WHERE name = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
-            preparedStatement.setString(1, expenseTypeName.trim());
-            ResultSet resultSet = preparedStatement.executeQuery();
-           // try () {
+            preparedStatement.setString(1, expenseTypeName.trim());           
+            try (ResultSet resultSet = preparedStatement.executeQuery();) {
                 if (resultSet.next()) {
                     return resultSet.getInt("id");
                 }
-          //  }
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//        }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         return -1;
     }
@@ -117,10 +113,11 @@ public class ExpenseSubTypeLoader {
         }
         return -1;
     }
-    private static boolean isDuplicateName(Connection connection, String expenseTypeName) throws SQLException {
-        String selectQuery = "SELECT COUNT(*) FROM expense_sub_type WHERE name = ?";
+    private static boolean isDuplicateName(Connection connection, String expenseTypeName, int expenseTypeId) throws SQLException {
+        String selectQuery = "SELECT COUNT(*) FROM expense_sub_type WHERE name = ? AND expense_type = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
             preparedStatement.setString(1, expenseTypeName);
+            preparedStatement.setInt(2, expenseTypeId);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
                     int count = resultSet.getInt(1);
