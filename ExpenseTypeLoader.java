@@ -36,7 +36,7 @@ public class ExpenseTypeLoader {
                 Sheet sheet = workbook.getSheetAt(0);
                 int expTypeColumnIndex = findColumnIndex(sheet, "Exp. Type");
 
-                Set<String> processedNames = new HashSet<>();
+
 
                 for (Row row : sheet) {
                     if (row.getRowNum() == 0) continue;
@@ -44,8 +44,6 @@ public class ExpenseTypeLoader {
                     String expenseTypeName = row.getCell(expTypeColumnIndex).getStringCellValue();
 
 
-//                    if (!processedNames.contains(expenseTypeName)) {
-//                        processedNames.add(expenseTypeName);
 
                         if (!isDuplicateName(connection, expenseTypeName)) {
                             String insertQuery = "INSERT INTO expense_type (name) VALUES (?)";
@@ -93,15 +91,5 @@ public class ExpenseTypeLoader {
         }
         return false;
     }
-    private static int findExpenseTypeColumnIndex(Sheet sheet, String columnName) {
-        Row headerRow = sheet.getRow(0);
-        Iterator<Cell> cellIterator = headerRow.cellIterator();
-        while (cellIterator.hasNext()) {
-            Cell cell = cellIterator.next();
-            if (columnName.equals(cell.getStringCellValue())) {
-                return cell.getColumnIndex();
-            }
-        }
-        return -1;
-    }
+   
 }
