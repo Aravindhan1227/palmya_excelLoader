@@ -50,6 +50,11 @@ class CarMade {
 class ManufacturerProd {
     Manufacturer manufacturer;
     CarMade carMade;
+    
+    public ManufacturerProd(Manufacturer manufacturer , CarMade carMade) {
+    	this.manufacturer = manufacturer;
+    	this.carMade = carMade;
+    }
 }
 
 public class Car {
@@ -88,39 +93,42 @@ public class Car {
         carsMade.add(new CarMade(3, 2022, 990));
         carsMade.add(new CarMade(4, 2021, 1100));
 
-        int targetYear = 2023;
-
-        Predicate<CarMade> carInYear = car -> car.getYear() == targetYear;
+        int targetYear = 2023
+        		;
 
         List<CarMade> carsInYear = carsMade.stream()
-                .filter(carInYear)
+                .filter(car -> car.getYear() == targetYear)
                 .collect(Collectors.toList());
 
-        List<ManufacturerProd> allObjectsInYear = LeftOuterJoin.leftJoin( manufacturers,carsInYear ,
-        		car -> car.getYear() == targetYear,
-        	    (manufacturer, car) -> {
-        	        ManufacturerProd manufacturerProd = new ManufacturerProd();
-        	        manufacturerProd.manufacturer = manufacturer;
-        	        manufacturerProd.carMade = car;
-        	        return manufacturerProd;
-        	    });
-
+        List<ManufacturerProd> allObjectsInYear = manufacturers.stream()
+                .map(manufacturer -> {
+                    List<CarMade> matchingCars = carsInYear.stream()
+                            .filter(car -> car.getManufacturerId() == manufacturer.getId())
+                            .collect(Collectors.toList());
+                    return matchingCars.isEmpty()
+                            ? new ManufacturerProd(manufacturer, null)
+                            : new ManufacturerProd(manufacturer, matchingCars.get(0));
+                })
+                .collect(Collectors.toList());
 
         System.out.println("Car-made records in " + targetYear + ":");
         allObjectsInYear.forEach(manufacturerProd -> {
             System.out.println("Manufacturer ID: " + manufacturerProd.manufacturer.getId() +
                     ", Name: " + manufacturerProd.manufacturer.getName() +
-                    ", Cars Made: " + manufacturerProd.carMade.getNumberOfCars());
+                    (manufacturerProd.carMade != null
+                            ? ", Cars Made: " + manufacturerProd.carMade.getNumberOfCars()
+                            : ", No cars made"));
         });
 
-        List<Manufacturer> manufacturersWithoutCarsInYear = manufacturers.stream()
-                .filter(manufacturer -> allObjectsInYear.stream()
-                        .noneMatch(manufacturerProd -> manufacturerProd.manufacturer.getId() == manufacturer.getId()))
+        List<Manufacturer> manufacturersWithoutCarsInYear = allObjectsInYear.stream()
+                .filter(manufacturerProd -> manufacturerProd.carMade == null)
+                .map(manufacturerProd -> manufacturerProd.manufacturer)
                 .collect(Collectors.toList());
 
         System.out.println("\nManufacturers without producing cars in " + targetYear + ":");
         manufacturersWithoutCarsInYear.forEach(manufacturer ->
                 System.out.println("Manufacturer ID: " + manufacturer.getId() +
                         ", Name: " + manufacturer.getName()));
+
     }
 }
